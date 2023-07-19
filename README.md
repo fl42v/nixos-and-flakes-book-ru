@@ -1,5 +1,7 @@
 ![](./docs/public/nixos-and-flakes-book.webp)
 
+> Примечание: Тут я пытаюсь перевести [NixOS and Flakes Book](https://github.com/ryan4yin/nixos-and-flakes-book), попутно добавляя переводы информации, на которую время от времени ссылается автор. Work in progress, все дела.
+
 # NixOS & Flakes Book :hammer_and_wrench: :heart:
 
 Want to know NixOS & Flakes in detail? Looking for a beginner-friendly tutorial? Then you've come to the right place!

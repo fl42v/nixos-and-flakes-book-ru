@@ -56,7 +56,11 @@ export default defineConfig({
   },
 
   locales: {
-    root: themeConfigEnglish(),
+    // In case of pr:
+    // root: themeConfigEnglish(),
+    // ru: themeConfigRussian(),
+    root: themeConfigRussian(),
+    en: themeConfigEnglish(),
     zh: themeConfigChinese(),
   },
 });
@@ -402,6 +406,182 @@ function themeConfigChinese() {
     },
   };
 }
+
+function themeConfigRussian() {
+  return {
+    label: "Русский",
+    lang: "ru",
+    link: "/ru/",
+    title: "NixOS & Flakes Book",
+    description: "An unofficial and opinionated book for beginners",
+
+    themeConfig: {
+      // https://vitepress.dev/reference/default-theme-config
+      nav: [
+        { text: "Home", link: "/ru/" },
+        { text: "Get Started", link: "introduction/index.md" },
+        { text: "Best Practices", link: "best-practices/intro.md" },
+      ],
+
+      sidebar: [
+        {
+          text: "Стартуем",
+          items: [
+            { text: "Введение", link: "/ru/introduction/index.md" },
+            {
+              text: "Плюсы и минусы",
+              link: "/ru/introduction/advantages-and-disadvantages.md",
+            },
+            {
+              text: "Установка",
+              link: "/ru/introduction/installation.md",
+            },
+          ],
+        },
+        {
+          text: "Язык Nix",
+          items: [
+            { text: "Основы", link: "/ru/the-nix-language/index.md" },
+            { text: "Одностраничник", link: "/ru/the-nix-language/one-pager.md" }
+          ],
+        },
+        {
+          text: "NixOS + Flakes = 🖤",
+          items: [
+            {
+              text: "Начинаем разбираться с NixOS",
+              link: "/ru/nixos-with-flakes/get-started-with-nixos.md",
+            },
+            {
+              text: "Введедние в флейки",
+              link: "/ru/nixos-with-flakes/introduction-to-flakes.md",
+            },
+            {
+              text: "Подрубаем Flakes",
+              link: "/ru/nixos-with-flakes/nixos-with-flakes-enabled.md",
+            },
+            {
+              text: "Разбираемся с Home Manager",
+              link: "/ru/nixos-with-flakes/start-using-home-manager.md",
+            },
+            {
+              text: "Разбиваем конфиг на модули",
+              link: "/ru/nixos-with-flakes/modularize-the-configuration.md",
+            },
+            {
+              text: "Обновление системы",
+              link: "/ru/nixos-with-flakes/update-the-system.md",
+            },
+            {
+              text: "Обновление и откат пакетов",
+              link: "/ru/nixos-with-flakes/downgrade-or-upgrade-packages.md",
+            },
+            {
+              text: "Полезности",
+              link: "/ru/nixos-with-flakes/other-useful-tips.md",
+            },
+          ],
+        },
+        {
+          text: "Nixpkgs's Advanced Usage",
+          items: [
+            { text: "Introduction", link: "/ru/nixpkgs/intro.md" },
+            { text: "callPackage", link: "/ru/nixpkgs/callpackage.md" },
+            { text: "Overridding", link: "/ru/nixpkgs/overriding.md" },
+            { text: "Overlays", link: "/ru/nixpkgs/overlays.md" },
+          ],
+        },
+        {
+          text: "Best Practices",
+          items: [
+            { text: "Introduction", link: "/ru/best-practices/intro.md" },
+            {
+              text: "Run downloaded binaries on NixOS",
+              link: "/ru/best-practices/run-downloaded-binaries-on-nixos.md",
+            },
+            {
+              text: "Simplify NixOS-related Commands",
+              link: "/ru/best-practices/simplify-nixos-related-commands.md",
+            },
+            {
+              text: "Debugging Derivations and Nix Expressions",
+              link: "/ru/best-practices/debugging.md",
+            },
+          ],
+        },
+
+        {
+          text: "Other Usage of Flakes",
+          items: [
+            { text: "Introduction", link: "/ru/other-usage-of-flakes/intro.md" },
+            {
+              text: "Flake Inputs",
+              link: "/ru/other-usage-of-flakes/inputs.md",
+            },
+            {
+              text: "Flake Outputs",
+              link: "/ru/other-usage-of-flakes/outputs.md",
+            },
+            {
+              text: "The New CLI",
+              link: "/ru/other-usage-of-flakes/the-new-cli.md",
+            },
+            {
+              text: "Nix Options",
+              link: "/ru/other-usage-of-flakes/options.md",
+            },
+            {
+              text: "Testing",
+              link: "/ru/other-usage-of-flakes/testing.md",
+            },
+          ],
+        },
+        {
+          text: "Dev Environments on NixOS",
+          items: [
+            {
+              text: "nix develop & pkgs.mkShell",
+              link: "/ru/development/intro.md",
+            },
+            {
+              text: "Dev Environments",
+              link: "/ru/development/dev-environments.md",
+            },
+            {
+              text: "Packaging 101",
+              link: "/ru/development/packaging-101.md",
+            },
+            {
+              text: "Cross-platform Compilation",
+              link: "/ru/development/cross-platform-compilation.md",
+            },
+            {
+              text: "Distribution Building",
+              link: "/ru/development/distributed-building.md",
+            },
+            {
+              text: "Kernel Development",
+              link: "/ru/development/kernel-development.md",
+            },
+          ],
+        },
+        {
+          text: "Advanced Topics",
+          items: [
+            { text: "Advanced Topics", link: "/ru/advanced-topics/index.md" },
+          ],
+        },
+        {
+          text: "Frequently Asked Questions",
+          items: [
+            { text: "Frequently Asked Questions", link: "/ru/faq/index.md" },
+          ],
+        },
+      ],
+    },
+  };
+};
+
 
 function getJSONLD(pageData: PageData) {
   if (pageData.relativePath === "index.md") {
