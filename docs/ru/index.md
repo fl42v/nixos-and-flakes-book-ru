@@ -14,10 +14,10 @@ hero:
   actions:
     - theme: brand
       text: Погнали
-      link: /introduction/index.md
+      link: /ru/introduction/index.md
     - theme: alt
       text: Исходники на GitHub
-      link: https://github.com/ryan4yin/nixos-and-flakes-book
+      link: https://github.com/fl42v/nixos-and-flakes-book-ru
 # features:
 #   - title: Feature A
 #     details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
