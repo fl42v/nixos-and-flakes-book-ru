@@ -3,7 +3,7 @@ import { PageData, defineConfig } from "vitepress";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  base: '/nixos-and-flakes-book-ru/'
+  base: '/nixos-and-flakes-book-ru/',
   // remove trailing `.html`
   // https://vitepress.dev/guide/routing#generating-clean-url
   cleanUrls: true,
