@@ -57,12 +57,9 @@ export default defineConfig({
   },
 
   locales: {
-    // In case of pr:
-    // root: themeConfigEnglish(),
-    // ru: themeConfigRussian(),
-    root: themeConfigRussian(),
-    en: themeConfigEnglish(),
+    root: themeConfigEnglish(),
     zh: themeConfigChinese(),
+    ru: themeConfigRussian(),
   },
 });
 
@@ -488,8 +485,8 @@ function themeConfigRussian() {
           items: [
             { text: "Introduction", link: "/ru/nixpkgs/intro.md" },
             { text: "callPackage", link: "/ru/nixpkgs/callpackage.md" },
-            { text: "Overridding", link: "/ru/nixpkgs/overriding.md" },
-            { text: "Overlays", link: "/ru/nixpkgs/overlays.md" },
+            { text: "Оверрайды", link: "/ru/nixpkgs/overriding.md" },
+            { text: "Оверлеи", link: "/ru/nixpkgs/overlays.md" },
           ],
         },
         {
