@@ -1,77 +1,75 @@
-# Getting Started with Home Manager
+# Знакомство с Home Manager
 
-As I mentioned earlier, NixOS can only manage system-level configuration. To manage user-level configuration in the Home directory, we need to install Home Manager.
+Как упоминалось ранее, средствами NixOS можно конфигурировать софт на уровне системы, в то время как декларативное управление пользовательскими настройками осуществляется с помощью утилиты Home Manager (в дальнейшем иногда hm). [Тут](https://nix-community.github.io/home-manager/index.html) лежит его официальная документация.
 
-According to the official [Home Manager Manual](https://nix-community.github.io/home-manager/index.html), to install Home Manager as a module of NixOS, we first need to create `/etc/nixos/home.nix`. Here's an example of its contents:
+Чтобы поставить Home Manager в NixOS, сначала создаем `/etc/nixos/home.nix` (предполагается, что системный флейк живет в `/etc/nixos`). Его содержимое может выглядеть так:
 
 ```nix
 { config, pkgs, ... }:
 
 {
-  # TODO please change the username & home direcotry to your own
+  # TODO юзернейм и homeDirectory нужно поменять на свои
   home.username = "ryan";
   home.homeDirectory = "/home/ryan";
 
-  # link the configuration file in current directory to the specified location in home directory
+  # симлинкаем файл `wallpaper.jpg` из текущей директории в `.config/i3/wallpaper.jpg` в домашней директории пользователя
   # home.file.".config/i3/wallpaper.jpg".source = ./wallpaper.jpg;
 
-  # link all files in `./scripts` to `~/.config/i3/scripts`
+  # симлинкаем все файлы из `./scripts` в `~/.config/i3/scripts`
   # home.file.".config/i3/scripts" = {
   #   source = ./scripts;
   #   recursive = true;   # link recursively
   #   executable = true;  # make all files executable
   # };
 
-  # encode the file content in nix configuration file directly
+  # задаем содержимое файла сразу в конфиге hm
   # home.file.".xxx".text = ''
   #     xxx
   # '';
 
-  # set cursor size and dpi for 4k monitor
+  # устанавливаем размер курсора и dpi под 4k монитор
   xresources.properties = {
     "Xcursor.size" = 16;
     "Xft.dpi" = 172;
   };
 
-  # basic configuration of git, please change to your own
+  # конфиг git, значения снова надо менять на свои
   programs.git = {
     enable = true;
     userName = "Ryan Yin";
     userEmail = "xiaoyin_c@qq.com";
   };
 
-  # Packages that should be installed to the user profile.
+  # какой софт ставить для текущего пользователя (не системно),
   home.packages = with pkgs; [
-    # here is some command line tools I use frequently
-    # feel free to add your own or remove some of them
 
     neofetch
-    nnn # terminal file manager
+    nnn # консольный файловый менеджер
 
-    # archives
+    # (раз)архивирование
     zip
     xz
     unzip
     p7zip
 
-    # utils
-    ripgrep # recursively searches directories for a regex pattern
-    jq # A lightweight and flexible command-line JSON processor
-    yq-go # yaml processer https://github.com/mikefarah/yq
-    exa # A modern replacement for ‘ls’
+    # утилиты
+    ripgrep # как grep, но быстрее
+    jq # легковесная тулза для работы с JSON
+    yq-go # то же, но для https://github.com/mikefarah/yq
+    exa # ‘ls’ с красивостями
     fzf # A command-line fuzzy finder
 
-    # networking tools
-    mtr # A network diagnostic tool
+    # тулзы для работы с сетью
+    mtr      # сетевая диагностика
     iperf3
-    dnsutils  # `dig` + `nslookup`
-    ldns # replacement of `dig`, it provide the command `drill`
-    aria2 # A lightweight multi-protocol & multi-source command-line download utility
-    socat # replacement of openbsd-netcat
-    nmap # A utility for network discovery and security auditing
-    ipcalc  # it is a calculator for the IPv4/v6 addresses
+    dnsutils # `dig` + `nslookup`
+    ldns     # `drill`, альтернатива `dig`
+    aria2    # A lightweight multi-protocol & multi-source command-line download utility
+    socat    # замена openbsd'шного netcat
+    nmap     # A utility for network discovery and security auditing
+    ipcalc   # калькулятор адресов IPv4/v6
 
-    # misc
+    # разное
     cowsay
     file
     which
@@ -82,37 +80,33 @@ According to the official [Home Manager Manual](https://nix-community.github.io/
     zstd
     gnupg
 
-    # nix related
-    #
-    # it provides the command `nom` works just like `nix`
-    # with more details log output
-    nix-output-monitor
+    # никсовое
+    nix-output-monitor # `nom`, по сути `nix`, но более детализированные логи
 
     # productivity
-    hugo # static site generator
-    glow # markdown previewer in terminal
+    hugo # генератор статичных сайтов
+    glow # превью markdown в терминале
 
-    btop  # replacement of htop/nmon
-    iotop # io monitoring
-    iftop # network monitoring
+    btop  # замена htop/nmon
+    iotop # мониторинг операций ввода/вывода
+    iftop # сетевой мониторинг
 
-    # system call monitoring
-    strace # system call monitoring
-    ltrace # library call monitoring
-    lsof # list open files
+    # мониторинг системных вызовов
+    strace 
+    ltrace # следит за вызовами функций из библиотек
+    lsof   # мониторит открытые софтом файлы
 
-    # system tools
+    # системное
     sysstat
-    lm_sensors # for `sensors` command
+    lm_sensors # мониторинг различных сенсоров пк
     ethtool
     pciutils # lspci
     usbutils # lsusb
   ];
 
-  # starship - an customizable prompt for any shell
+  # starship - гибкий prompt для любого шелла
   programs.starship = {
     enable = true;
-    # custom settings
     settings = {
       add_newline = false;
       aws.disabled = true;
@@ -121,10 +115,9 @@ According to the official [Home Manager Manual](https://nix-community.github.io/
     };
   };
 
-  # alacritty - a cross-platform, GPU-accelerated terminal emulator
+  # alacritty - эмулятор терминала
   programs.alacritty = {
     enable = true;
-    # custom settings
     settings = {
       env.TERM = "xterm-256color";
       font = {
@@ -139,12 +132,11 @@ According to the official [Home Manager Manual](https://nix-community.github.io/
   programs.bash = {
     enable = true;
     enableCompletion = true;
-    # TODO add your cusotm bashrc here
+    # TODO сюда кидаем содержимое .bashrc
     bashrcExtra = ''
       export PATH="$PATH:$HOME/bin:$HOME/.local/bin:$HOME/go/bin"
     '';
 
-    # set some aliases, feel free to add more or remove some
     shellAliases = {
       k = "kubectl";
       urldecode = "python3 -c 'import sys, urllib.parse as ul; print(ul.unquote_plus(sys.stdin.read()))'";
@@ -167,13 +159,18 @@ According to the official [Home Manager Manual](https://nix-community.github.io/
 }
 ```
 
-After adding `/etc/nixos/home.nix`, you need to import this new configuration file in `/etc/nixos/flake.nix` to make use of it, use the following command to generate an example in the current folder for reference:
+`/etc/nixos/home.nix` написали, осталось импортировать его в `/etc/nixos/flake.nix`. Как это сделать можно посмотреть в темплейте hm:
+
+> Примечание: тут достаточно странный момент, т.к. до этого автор постепенно строил один флейк, а теперь предлагает сгенерить новый
+> в той же директории. Если будет время, создам issue на гите, пока что меняю на создание шаблона в новой директории
 
 ```shell
+mkdir test
+cd test
 nix flake new example -t github:nix-community/home-manager#nixos
 ```
 
-After adjusting the parameters, the content of `/etc/nixos/flake.nix` is as follows:
+Из созданного шаблона должно быть понятно, как изменить `/etc/nixos/flake.nix` для подключения созданного ранее модуля hm:
 
 ```nix
 {
@@ -181,6 +178,7 @@ After adjusting the parameters, the content of `/etc/nixos/flake.nix` is as foll
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    # подтягиваем hm в флейк
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
   };
@@ -193,17 +191,18 @@ After adjusting the parameters, the content of `/etc/nixos/flake.nix` is as foll
         modules = [
           ./configuration.nix
 
-          # make home-manager as a module of nixos
-          # so that home-manager configuration will be deployed automatically when executing `nixos-rebuild switch`
+          # использование home-manager в качестве модуля позволяет ему автоматически
+          # деплоить пользовательские конфиги при выполнении `nixos-rebuild switch`
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
 
-            # TODO replace ryan with your own username
+            # TODO меняем ryan на свой юзернейм
             home-manager.users.ryan = import ./home.nix;
 
-            # Optionally, use home-manager.extraSpecialArgs to pass arguments to home.nix
+            # передать в home.nix дополнительные параметны можно с помощью home-manager.extraSpecialArgs
+            # по аналогии с использованием specialArgs в предыдущей главе
           }
         ];
       };
@@ -212,28 +211,23 @@ After adjusting the parameters, the content of `/etc/nixos/flake.nix` is as foll
 }
 ```
 
-Then run `sudo nixos-rebuild switch` to apply the configuration, and home-manager will be installed automatically.
+Применяем изменения, выполнив `sudo nixos-rebuild switch`. При этом будет установлен home-manager и прописанный в `home.nix` софт.
 
-After the installation, all user-level packages and configuration can be managed through `/etc/nixos/home.nix`. When running `sudo nixos-rebuild switch`, the configuration of home-manager will be applied automatically. (**It's not necessary to run `home-manager switch` manually**!)
+<!-- After the installation, all user-level packages and configuration can be managed through `/etc/nixos/home.nix`. When running `sudo nixos-rebuild switch`, the configuration of home-manager will be applied automatically. (**It's not necessary to run `home-manager switch` manually**!) -->
 
-To find the options we can use in `home.nix`, referring to the following documents:
+Узнать, какой софт можно ставить через hm и как его настраивать можно так:
 
-- [Home Manager - Appendix A. Configuration Options](https://nix-community.github.io/home-manager/options.html): A list of all options, it is recommended to search for keywords in it.
-  - [Home Manager Option Search](https://mipmip.github.io/home-manager-option-search/) is another option search tool with better UI.
-- [home-manager](https://github.com/nix-community/home-manager): Some options are not listed in the official documentation, or the documentation is not clear enough, you can directly search and read the corresponding source code in this home-manager repo.
+- Почитать [Home Manager - Appendix A. Configuration Options](https://nix-community.github.io/home-manager/options.html): список всех опций hm; Ctrl+F - и в путь;
+  - Альтернативно можно воспользоваться [Home Manager Option Search](https://mipmip.github.io/home-manager-option-search/). Тулза предоставляет ту же информацию, но сильно упрощает поиск;
+- Курить исходники [home-manager](https://github.com/nix-community/home-manager): некоторые опции могут быть не указаны в доках или иметь невнятное описание.
 
-## Home Manager vs NixOS
+## Home Manager или NixOS
 
-When it comes to managing software packages and configurations, you often have the choice of using either NixOS modules (`configuration.nix`) or Home Manager (`home.nix`). This poses a dilemma: **What are the differences between putting packages or configuration files in NixOS modules versus Home Manager configurations, and how should you decide?**
+Один и тот же софт часто можно поставить как средставами NixOS (`configuration.nix`), так и используя Home Manager (`home.nix`), следовательно нужно знать **в чем заключается разница между ними и что стоит использовать в различных юзкейсах**
 
-First, let's understand the differences. Packages and configuration files installed through NixOS modules are global to the entire system. Global configurations are typically stored in `/etc`, and globally installed packages are linked accordingly. Regardless of the user you switch to, you can access and use these packages and configurations.
+Сперва о различиях. Пакеты, установленные и сконфигурированные средствами NixOS доступны для любого пользователя в системе, их конфиги как правило лежат (симлинкнуты) в `/etc`. С другой стороны, Home Manager ставит и конфигурирует софт для конкретного пользователя, соответственно другие не смогут его использовать.
 
-On the other hand, everything installed through Home Manager is specific to the corresponding user. Once you switch to another user, those configurations and packages become unavailable.
+Таким образом, рекомендуется выбирать:
 
-Based on these characteristics, here is a general recommended approach:
-
-- NixOS modules: Install core system components and other software packages required by almost all users, including the root user.
-  - For example, if you want a package to be accessible even when you switch to the root user, or if you want a configuration to take effect for the root user as well, you should install it through a NixOS module.
-- Home Manager: Use Home Manager to install all other configurations and software specific to individual users.
-
-In summary, NixOS modules are suitable for installing system-wide components and packages that need to be accessible to multiple users, while Home Manager is ideal for managing user-specific configurations and software.
+- Модули NixOS: для установки необходимого для работы системы или используемого всеми пользователями (включая root) софта;
+- Home Manager: для всего остального.

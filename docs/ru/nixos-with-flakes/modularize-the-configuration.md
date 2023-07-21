@@ -1,6 +1,6 @@
-# Modularize Your NixOS Configuration
+# Делим конфиг NixOS на модули
 
-At this point, the skeleton of the entire system is configured. The current configuration structure in `/etc/nixos` should be as follows:
+К этому моменту у нас есть скелет системы, а текущая структура `/etc/nixos` выглядит так:
 
 ```
 $ tree
@@ -11,34 +11,34 @@ $ tree
 └── configuration.nix
 ```
 
-The functions of these four files are:
+Роли четырех перечисленных файлов:
 
-- `flake.lock`: An automatically generated version-lock file that records all input sources, hash values, and version numbers of the entire flake to ensure reproducibility.
-- `flake.nix`: The entry file that will be recognized and deployed when executing `sudo nixos-rebuild switch`. See [Flakes - NixOS Wiki](https://nixos.wiki/wiki/Flakes) for all options of flake.nix.
-- `configuration.nix`: Imported as a Nix module in flake.nix, all system-level configuration is currently written here. See [Configuration - NixOS Manual](https://nixos.org/manual/nixos/unstable/index.html#ch-configuration) for all options of configuration.nix.
-- `home.nix`: Imported by Home-Manager as the configuration of the user `ryan` in flake.nix, containing all of `ryan`'s configuration and managing `ryan`'s home folder. See [Appendix A. Configuration Options - Home-Manager](https://nix-community.github.io/home-manager/options.html) for all options of home.nix.
+- `flake.lock`: автоматически сгенерированыый version-lock, хранящий используемые во флейке инпуты, их хэши и версии (обеспечивает "повторяемость" системы).
+- `flake.nix`: Условно, заголовок флейка, его ищет `sudo nixos-rebuild switch`. С доступными там опциями можно ознакомиться в [Flakes - NixOS Wiki](https://nixos.wiki/wiki/Flakes).
+- `configuration.nix`: Nix-модуль, который мы импортируем в flake.nix, пока что там конфигурируется весь "системный" софт. См. [Configuration - NixOS Manual](https://nixos.org/manual/nixos/unstable/index.html#ch-configuration) для определения доступных опций.
+- `home.nix`: Импортируется через Home-Manager, устанавливает и конфигурирует софт для пользователя `ryan`. Опции: [Appendix A. Configuration Options - Home-Manager](https://nix-community.github.io/home-manager/options.html).
 
-By modifying these files, you can declaratively change the system and home directory status.
+Модификация `configuration.nix` и `home.nix` меняет состояние системы и домашней директории пользователя соответственно.
 
- However, as the configuration grows, relying solely on `configuration.nix` and `home.nix` can lead to bloated and difficult-to-maintain files. A better solution is to use the Nix module system to split the configuration into multiple Nix modules and write them in a classified manner.
+Однако с увеличением количества установленного софта `configuration.nix` и `home.nix` запросто могут стать огромными кусками трудночитаемого кода. Более удобный вариант - использовать систему модулей Nix, чтобы удобно разложить конфиги программ в отдельные файлы.
 
-The Nix module system provides a parameter, `imports`, which accepts a list of `.nix` files and merges all the configuration defined in these files into the current Nix module. Note that `imports` will not simply overwrite duplicate configuration but handle it more reasonably. For example, if `program.packages = [...]` is defined in multiple modules, then `imports` will merge all `program.packages` defined in all Nix modules into one list. Attribute sets can also be merged correctly. The specific behavior can be explored by yourself.
+Для упрощения этой задачи в системе модулей Nix есть атрибут `imports`. Он берет на вход список `.nix`-файлов и импортирует их в текущий модуль. Стоит заметить, что `imports` не переписывает повторяющиеся опции в конфиге. Например, если пользователь прописал `program.packages = [...]` в нескольких модулях, `imports` соединит все `program.packages` в один список, с attrset-ами ситуация та же.
 
 > I only found a description of `imports` in [Nixpkgs-Unstable Official Manual - evalModules Parameters](https://nixos.org/manual/nixpkgs/unstable/#module-system-lib-evalModules-parameters): `A list of modules. These are merged together to form the final configuration.` It's a bit ambiguous...
 
-With the help of `imports`, we can split `home.nix` and `configuration.nix` into multiple Nix modules defined in different `.nix` files.
+Ожидаемо, с помощью `imports`, можно разделить `home.nix` и `configuration.nix` на несколько модулей, лежащих в своих `.nix`-файлах.
 
-For example, [ryan4yin/nix-config/v0.0.2](https://github.com/ryan4yin/nix-config/tree/v0.0.2) is the configuration of my previous NixOS system with the i3 window manager. Its structure is as follows:
+Например, в [ryan4yin/nix-config/v0.0.2](https://github.com/ryan4yin/nix-config/tree/v0.0.2) можно найти конфиг NixOS [автора книги], в котором используется оконник i3. Структура конфига такая:
 
 ```shell
 ├── flake.lock
 ├── flake.nix
 ├── home
-│   ├── default.nix         # here we import all submodules by imports = [...]
-│   ├── fcitx5              # fcitx5 input method's configuration
+│   ├── default.nix         # тут используется imports = [...] для импорта других модулей
+│   ├── fcitx5              # конфигурация fcitx5 (см. главу про оверрайды/оверлеи)
 │   │   ├── default.nix
 │   │   └── rime-data-flypy
-│   ├── i3                  # i3 window manager's configuration
+│   ├── i3                  # конфиги оконника
 │   │   ├── config
 │   │   ├── default.nix
 │   │   ├── i3blocks.conf
@@ -47,12 +47,12 @@ For example, [ryan4yin/nix-config/v0.0.2](https://github.com/ryan4yin/nix-config
 │   ├── programs
 │   │   ├── browsers.nix
 │   │   ├── common.nix
-│   │   ├── default.nix   # here we import all modules in programs folder by imports = [...]
+│   │   ├── default.nix   # Снова используется imports = [...]
 │   │   ├── git.nix
 │   │   ├── media.nix
 │   │   ├── vscode.nix
 │   │   └── xdg.nix
-│   ├── rofi              #  rofi launcher's configuration
+│   ├── rofi              # рофленые конфиги rofi
 │   │   ├── configs
 │   │   │   ├── arc_dark_colors.rasi
 │   │   │   ├── arc_dark_transparent_colors.rasi
@@ -61,7 +61,7 @@ For example, [ryan4yin/nix-config/v0.0.2](https://github.com/ryan4yin/nix-config
 │   │   │   ├── rofidmenu.rasi
 │   │   │   └── rofikeyhint.rasi
 │   │   └── default.nix
-│   └── shell             # shell/terminal related configuration
+│   └── shell             # конфиги шелла/терминала
 │       ├── common.nix
 │       ├── default.nix
 │       ├── nushell
@@ -71,27 +71,27 @@ For example, [ryan4yin/nix-config/v0.0.2](https://github.com/ryan4yin/nix-config
 │       ├── starship.nix
 │       └── terminals.nix
 ├── hosts
-│   ├── msi-rtx4090      # My main machine's configuration
-│   │   ├── default.nix  # This is the old configuration.nix, but most of the content has been split out to modules.
-│   │   └── hardware-configuration.nix  # hardware & disk related configuration, autogenerated by nixos
-│   └── nixos-test       # my test machine's configuration
+│   ├── msi-rtx4090      # Конфиги рабочей машины
+│   │   ├── default.nix  # когда-то был `configuration.nix`-ом, но потом сбросил вес и поделился на модули.
+│   │   └── hardware-configuration.nix  # результат хардварного скана, автоматически сгенерированный
+│   └── nixos-test       # тестовый конфиг
 │       ├── default.nix
 │       └── hardware-configuration.nix
-├── modules          # some common NixOS modules that can be reused
+├── modules          # модули, пригодные к многократному использованию
 │   ├── i3.nix
 │   └── system.nix
-└── wallpaper.jpg    # wallpaper
+└── wallpaper.jpg    # обоина
 ```
 
-For more details, you can refer to the [ryan4yin/nix-config/v0.0.2](https://github.com/ryan4yin/nix-config/tree/v0.0.2) repository.
+Всем желающим посмотреть реализацию конфига в деталях предлагается пройти в упомянутую репу.
 
-## `lib.mkOverride`, `lib.mkDefault`, and `lib.mkForce`
+## `lib.mkOverride`, `lib.mkDefault` и `lib.mkForce`
 
-In Nix, some people use `lib.mkDefault` and `lib.mkForce` to define values. These functions are designed to set default values or force values of options.
+В ряде конфигов встречается использование `lib.mkDefault` и `lib.mkForce` для работы с дефолтными значениями параметров. Первая функция задает такое значение, вторая - форсирует его изменение.
 
-You can explore the source code of `lib.mkDefault` and `lib.mkForce` by running `nix repl -f '<nixpkgs>'` and then entering `:e lib.mkDefault`. To learn more about `nix repl`, type `:?` for the help information.
+Исходники этих функций можно посмотреть, запустив `nix repl -f '<nixpkgs>'` и введя туда `:e lib.mkDefault`, а если в `nix repl` ввести `:?`, он покажет свой мануал.
 
-Here's the source code:
+Итак, сырцы:
 
 ```nix
   # ......
@@ -110,13 +110,13 @@ Here's the source code:
   # ......
 ```
 
-In summary, `lib.mkDefault` is used to set default values of options with a priority of 1000 internally, and `lib.mkForce` is used to force values of options with a priority of 50 internally. If you set a value of an option directly, it will be set with a default priority of 1000, the same as `lib.mkDefault`.
+Понимаем, что `lib.mkDefault` ставит опции приоритет 1000, а `lib.mkForce` - 50. Если ввести значение атрибута руками, оно будет иметь тот же приоритет, что и с `lib.mkDefault` (1000).
 
-The lower the `priority` value, the higher the actual priority. As a result, `lib.mkForce` has a higher priority than `lib.mkDefault`. If you define multiple values with the same priority, Nix will throw an error.
+Чем ниже значение приоритета, тем "важнее" на самом деле значение. Соответственно, значение, установленное через `lib.mkForce` перепишет установленное через `lib.mkDefault`, а попытка несколько раз задать атрибуту значения с одним и тем же приоритетом приведут к ошибке.
 
-Using these functions can be very helpful for modularizing the configuration. You can set default values in a low-level module (base module) and force values in a high-level module.
+При делении конфига на модули использование этих функций позволяет задать ряд дефолтных значений в базовом модуле и переписать их на что-то другое в модулях, основанных на нем.
 
-For example, in my configuration at [ryan4yin/nix-config/blob/main/modules/nixos/core-server.nix#L30](https://github.com/ryan4yin/nix-config/blob/main/modules/nixos/core-server.nix#L30), I define default values like this:
+Например, в конфигурации [автора] [ryan4yin/nix-config/blob/main/modules/nixos/core-server.nix#L30](https://github.com/ryan4yin/nix-config/blob/main/modules/nixos/core-server.nix#L30) есть такой дефолт:
 
 ```nix{6}
 { lib, pkgs, ... }:
@@ -130,7 +130,7 @@ For example, in my configuration at [ryan4yin/nix-config/blob/main/modules/nixos
 }
 ```
 
-Then, for my desktop machine, I override the value in [ryan4yin/nix-config/blob/main/modules/nixos/core-desktop.nix#L15](https://github.com/ryan4yin/nix-config/blob/main/modules/nixos/core-desktop.nix#L15) like this:
+В дальнейшем в конфиге десктопа [ryan4yin/nix-config/blob/main/modules/nixos/core-desktop.nix#L15](https://github.com/ryan4yin/nix-config/blob/main/modules/nixos/core-desktop.nix#L15) оно меняется на `true`:
 
 ```nix{10}
 { lib, pkgs, ... }:
@@ -148,15 +148,13 @@ Then, for my desktop machine, I override the value in [ryan4yin/nix-config/blob/
 }
 ```
 
-## `lib.mkOrder`, `lib.mkBefore`, and `lib.mkAfter`
+## `lib.mkOrder`, `lib.mkBefore` и `lib.mkAfter`
 
-In addition to `lib.mkDefault` and `lib.mkForce`, there are also `lib.mkBefore` and `lib.mkAfter`, which are used to set the merge order of \*\*list
+Помимо `lib.mkDefault` и `lib.mkForce`, существуют `lib.mkBefore` и `lib.mkAfter`, определяющие приоритет объединения списков, что также полезно в задачах модуляризации.
 
--type options\*\*. These functions further contribute to the modularization of the configuration.
+Также `lib.mkOrder`, `lib.mkBefore` и `lib.mkAfter` позволяют указать порядок объединения атрибутов с одинаковым приоритетом и не получить ошибку.
 
-As mentioned earlier, when you define multiple values with the same **override priority**, Nix will throw an error. However, by using `lib.mkOrder`, `lib.mkBefore`, or `lib.mkAfter`, you can define multiple values with the same override priority, and they will be merged in the order you specify.
-
-To examine the source code of `lib.mkBefore`, you can run `nix repl -f '<nixpkgs>'` and then enter `:e lib.mkBefore`. To learn more about `nix repl`, type `:?` for the help information:
+Посмотрим на исходники `lib.mkBefore`: `nix repl -f '<nixpkgs>'`, затем `:e lib.mkBefore`:
 
 ```nix
   # ......
@@ -175,12 +173,11 @@ To examine the source code of `lib.mkBefore`, you can run `nix repl -f '<nixpkgs
   # ......
 ```
 
-Therefore, `lib.mkBefore` is a shorthand for `lib.mkOrder 500`, and `lib.mkAfter` is a shorthand for `lib.mkOrder 1500`.
+Понимаем, что `lib.mkBefore` эквивалентен `lib.mkOrder 500`, а `lib.mkAfter` -- `lib.mkOrder 1500`.
 
-To test the usage of `lib.mkBefore` and `lib.mkAfter`, let's create a simple Flake project:
+Для демонстрации использования `lib.mkBefore` и `lib.mkAfter` создадим небольшой флейк:
 
 ```shell{16-29}
-# Create flake.nix with the following content
 › cat <<EOF | sudo tee flake.nix
 {
   description = "Ryan's NixOS Flake";
@@ -195,17 +192,17 @@ To test the usage of `lib.mkBefore` and `lib.mkAfter`, let's create a simple Fla
         system = "x86_64-linux";
 
         modules = [
-          # Demo module 1: insert 'git' at the head of the list
+          # Demo module 1: вставляем гит в начало списка
           ({lib, pkgs, ...}: {
             environment.systemPackages = lib.mkBefore [pkgs.git];
           })
 
-          # Demo module 2: insert 'vim' at the tail of the list
+          # Demo module 2: вставляем 'vim' в конец списка
           ({lib, pkgs, ...}: {
             environment.systemPackages = lib.mkAfter [pkgs.vim];
           })
 
-          # Demo module 3: simply add 'curl' to the list
+          # Demo module 3: (просто) добавляем curl
           ({lib, pkgs, ...}: {
             environment.systemPackages = with pkgs; [curl];
           })
@@ -216,18 +213,17 @@ To test the usage of `lib.mkBefore` and `lib.mkAfter`, let's create a simple Fla
 }
 EOF
 
-# Create flake.lock
+# создаем flake.lock
 › nix flake update
 
-# Enter the nix repl environment
 › nix repl
 Welcome to Nix 2.13.3. Type :? for help.
 
-# Load the flake we just created
+# загружаем созданный ранее флейк
 nix-repl> :lf .
 Added 9 variables.
 
-# Check the order of systemPackages
+# смотрим systemPackages
 nix-repl> outputs.nixosConfigurations.nixos-test.config.environment.systemPackages
 [ «derivation /nix/store/0xvn7ssrwa0ax646gl4hwn8cpi05zl9j-git-2.40.1.drv»
   «derivation /nix/store/7x8qmbvfai68sf73zq9szs5q78mc0kny-curl-8.1.1.drv»
@@ -239,11 +235,11 @@ nix-repl> outputs.nixosConfigurations.nixos-test.config.environment.systemPackag
 q5azka70lvamsca4g4sf55j8994-vim-9.0.1441.drv» ]
 ```
 
-As you can see, the order of `systemPackages` is `git -> curl -> default packages -> vim`, which matches the order we defined in `flake.nix`.
+Видим, что порядок `systemPackages` следующий: `git -> curl -> дефолтные пакеты -> vim`, что соответствует порядку, заданному в `flake.nix`.
 
-> Although adjusting the order of `systemPackages` may not be useful in practice, it can be helpful in other scenarios.
+> Хотя изменение порядка пакетов в `systemPackages` никому не интересно, фича полезна в других сценариях.
 
-## References
+## Литература
 
 - [Nix modules: Improving Nix's discoverability and usability](https://cfp.nixcon.org/nixcon2020/talk/K89WJY/)
 - [Module System - Nixpkgs](https://github.com/NixOS/nixpkgs/blob/nixos-unstable/doc/module-system/module-system.chapter.md)
