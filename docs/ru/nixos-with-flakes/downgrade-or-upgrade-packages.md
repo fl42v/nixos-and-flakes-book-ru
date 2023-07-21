@@ -1,47 +1,44 @@
-# Downgrading or Upgrading Packages
+# Обновлнение и откат пакетов
 
-When working with Flakes, you may encounter situations where you need to downgrade or upgrade certain packages to address bugs or compatibility issues. In Flakes, package versions and hash values are directly tied to the git commit of their flake input. To modify the package version, you need to lock the git commit of the flake input.
+В определенных ситуациях может понадобиться обновить или откатить к предыдущей версии какой-либо из установленных пакетов (например, когда в новой версии заводятся баги). При использовании флейков для этого нужно проинструктировать Nix брать пакет из определенного коммита в репозитории (pinning).
 
-Here's an example of how you can add multiple nixpkgs inputs, each using a different git commit or branch:
+Так можно добавить в флейк несколько версий nixpkgs c различными коммитами:
 
 ```nix{8-13,19-20,27-44}
 {
   description = "NixOS configuration of Ryan Yin";
 
   inputs = {
-    # Default to the nixos-unstable branch
+    # дефолтный nixos-unstable
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
-    # Latest stable branch of nixpkgs, used for version rollback
-    # The current latest version is 23.05
+    # Последняя стабильная версия (для отката версий пакетов)
+    # На текущий момент 23.05
     nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-23.05";
 
-    # You can also use a specific git commit hash to lock the version
+    # Конкретный коммит можно добавить через его хэш
     nixpkgs-fd40cef8d.url = "github:nixos/nixpkgs/fd40cef8d797670e203a27a91e4b8e6decf0b90c";
   };
 
   outputs = inputs@{
     self,
     nixpkgs,
-    nixpkgs-stable,
-    nixpkgs-fd40cef8d,
+    nixpkgs-stable,    # добавляем новые инпуты
+    nixpkgs-fd40cef8d, # добавляем новые инпуты
     ...
   }: {
     nixosConfigurations = {
       nixos-test = nixpkgs.lib.nixosSystem rec {
         system = "x86_64-linux";
 
-        # The `specialArgs` parameter passes the
-        # non-default nixpkgs instances to other nix modules
+        # `specialArgs` для передачи других версий nixpkgs в модули
         specialArgs = {
-          # To use packages from nixpkgs-stable,
-          # we configure some parameters for it first
+          # Чтобы поставить пакет из ветки nixpkgs-stable,
+          # нужно указать для нее ряд параметров
           pkgs-stable = import nixpkgs-stable {
-            # Refer to the `system` parameter from
-            # the outer scope recursively
+            # использовать `system`, указанный ранее
             system = system;
-            # To use Chrome, we need to allow the
-            # installation of non-free softwares.
+            # Для проприетарного мусора, вроде хрома
             config.allowUnfree = true;
           };
           pkgs-fd40cef8d = import nixpkgs-fd40cef8d {
@@ -53,7 +50,7 @@ Here's an example of how you can add multiple nixpkgs inputs, each using a diffe
         modules = [
           ./hosts/nixos-test
 
-          # Omit other configurations...
+          # ... бла-бла-бла ...
         ];
       };
     };
@@ -61,9 +58,9 @@ Here's an example of how you can add multiple nixpkgs inputs, each using a diffe
 }
 ```
 
-In the above example, we have defined multiple nixpkgs inputs: `nixpkgs`, `nixpkgs-stable`, and `nixpkgs-fd40cef8d`. Each input corresponds to a different git commit or branch.
+<!-- In the above example, we have defined multiple nixpkgs inputs: `nixpkgs`, `nixpkgs-stable`, and `nixpkgs-fd40cef8d`. Each input corresponds to a different git commit or branch. -->
 
-Next, you can refer to the packages from `pkgs-stable` or `pkgs-fd40cef8d` within your submodule. Here's an example of a Home Manager submodule:
+Теперь в модулях можно обращаться к `pkgs-stable` или `pkgs-fd40cef8d`. В случае модуля для Home Manager выглядит так:
 
 ```nix{4-7,13,25}
 {
@@ -77,13 +74,13 @@ Next, you can refer to the packages from `pkgs-stable` or `pkgs-fd40cef8d` withi
 }:
 
 {
-  # Use packages from `pkgs-stable` instead of `pkgs`
+  # Установка из `pkgs-stable` вместо `pkgs`
   home.packages = with pkgs-stable; [
     firefox-wayland
 
-    # Chrome Wayland support was broken on the nixos-unstable branch,
-    # so we fallback to the stable branch for now.
-    # Reference: https://github.com/swaywm/sway/issues/7562
+    # В Chrome из nixos-unstable отвалилась поддержка Wayland,
+    # так что ставим из стабильной ветки
+    # https://github.com/swaywm/sway/issues/7562
     google-chrome
   ];
 
@@ -95,6 +92,6 @@ Next, you can refer to the packages from `pkgs-stable` or `pkgs-fd40cef8d` withi
 }
 ```
 
-By adjusting the configuration as shown above, you can deploy it using `sudo nixos-rebuild switch`. This will downgrade your Firefox/Chrome/VSCode versions to the ones corresponding to `nixpkgs-stable` or `nixpkgs-fd40cef8d`.
+После этого `sudo nixos-rebuild switch` откатит версии Firefox/Chrome/VSCode до таковых из `nixpkgs-stable` или `nixpkgs-fd40cef8d`.
 
-> According to [1000 instances of nixpkgs](https://discourse.nixos.org/t/1000-instances-of-nixpkgs/17347), it's not a good practice to use `import` in submodules or subflakes to customize `nixpkgs`. Each `import` creates a new instance of nixpkgs, which increases build time and memory usage as the configuration grows. To avoid this problem, we create all nixpkgs instances in `flake.nix`.
+> Если верить [1000 instances of nixpkgs](https://discourse.nixos.org/t/1000-instances-of-nixpkgs/17347), смена ветки во вложенных модулях с помощью `import` - плохая идея, т.к. каждый вызов функции создает новый nixpkgs, что крайне с увеличением размера конфига негативно влияет на потребление ресурсов ПК и время сборки. Вместо этого все инстансы nixpkgs объявляются в `flake.nix`.

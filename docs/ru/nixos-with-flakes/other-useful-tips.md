@@ -1,12 +1,12 @@
-# Other Useful Tips
+# Другие полезности
 
-## Managing the Configuration with Git
+## Загрузка конфига в Git
 
-NixOS configuration, being a set of text files, is well-suited for version control with Git. This allows easy rollback to a previous version in case of issues.
+Поскольку конфиг NixOS представляет из себя набор текстовых файлов, с ним отлично работают системы контроля версий наподобие git.
 
-However, by default, NixOS places the configuration in `/etc/nixos`, which requires root permissions for modification, making it inconvenient for daily use. Thankfully, Flakes can help solve this problem by allowing you to place your flake anywhere you prefer.
+Однако дефолтное расположение конфига в `/etc/nixos` и необходимость повышенных привиллегий для изменения лежащих там файлов несколько портят малину. Есть несколько способов положить конфиг в более удобное место.
 
-For example, you can place your flake in `~/nixos-config` and create a symbolic link in `/etc/nixos` as follows:
+Во-превых, можно переместить его, например, в `~/nixos-config` и симлинкнуть директорию в `/etc/nixos`:
 
 ```shell
 sudo mv /etc/nixos /etc/nixos.bak  # Backup the original configuration
@@ -16,59 +16,51 @@ sudo ln -s ~/nixos-config/ /etc/nixos
 sudo nixos-rebuild switch
 ```
 
-This way, you can use Git to manage the configuration in `~/nixos-config`. The configuration can be modified with regular user-level permissions and does not require root ownership.
+Таким образом можно пользовать гит для `~/nixos-config` и ходить в последний с правами пользователя.
 
-Another approach is to delete `/etc/nixos` directly and specify the configuration file path each time you deploy it:
+В качестве альтернативы можно просто удалить `/etc/nixos` и указывать при апдейтах путь до флейка:
 
 ```shell
 sudo mv /etc/nixos /etc/nixos.bak
 cd ~/nixos-config
 
-# `--flake .#nixos-test` deploys the flake.nix located in
-# the current directory, and the nixosConfiguration's name is `nixos-test`
+# `--flake .#nixos-test` разворачивает flake.nix, лежащий в текущей директории
 sudo nixos-rebuild switch --flake .#nixos-test
 ```
 
-Choose the method that suits you best. Afterward, system rollback becomes simple. Just switch to the previous commit and deploy it:
+Из плюшек использования git - теперь можно быстро откатиться к любой версии конфика, переключившись на нужный коммит:
 
 ```shell
 cd ~/nixos-config
-# Switch to the previous commit
+# переключаемся на предыдущий коммит
 git checkout HEAD^1
-# Deploy the flake.nix located in the current directory,
-# with the nixosConfiguration's name `nixos-test`
+
 sudo nixos-rebuild switch --flake .#nixos-test
 ```
 
-More advanced Git operations are not covered here, but in general, rollback can be performed directly using Git. Only in cases of complete system crashes would you need to restart into the bootloader and boot the system from a previous historical version.
+## Просмотр и удаление предыдущих поколений
 
-## Viewing and Deleting Historical Data
-
-As mentioned earlier, each NixOS deployment creates a new version, and all versions are added to the system's boot options. In addition to restarting the computer, you can query all available historical versions using the following command:
+Как упоминалось ранее, каждый `rebuild-switch` создает новое поколение и добавляет опцию загрузиться в него. Список всех поколений можно узнать следующим образом:
 
 ```shell
 nix profile history --profile /nix/var/nix/profiles/system
 ```
 
-To clean up historical versions and free up storage space, use the following command:
+А удалить старые для освобождения пространства на диске - так:
 
 ```shell
-# Delete all historical versions older than 7 days
+# Удалить поколения старше 7 дней 
 sudo nix profile wipe-history --older-than 7d --profile /nix/var/nix/profiles/system
 
-# Run garbage collection after wiping history
+# Запустить сборщик мусора, который удалит из nix store ненужные более версии программ
 sudo nix store gc --debug
 ```
 
-Another command that returns all packages installed in the system is:
+Еще есть `nix-env -qa`, так можно узнать список установленного софта.
 
-```shell
-nix-env -qa
-```
+## Уменьшаем потребление дискового пространства
 
-## Reducing Disk Usage
-
-The following configuration can be added to your NixOS configuration to help reduce disk usage:
+Следующийе опции в конфиге помогут ограничить использования дискового пространства:
 
 ```nix
 { lib, pkgs, ... }:
@@ -76,24 +68,22 @@ The following configuration can be added to your NixOS configuration to help red
 {
   # ...
 
-  # Limit the number of generations to keep
+  # Ограничиваем количество поколений в загрузчике
   boot.loader.systemd-boot.configurationLimit = 10;
   # boot.loader.grub.configurationLimit = 10;
 
-  # Perform garbage collection weekly to maintain low disk usage
+  # Автоматическое удаление поколений старше недели
   nix.gc = {
     automatic = true;
     dates = "weekly";
     options = "--delete-older-than 1w";
  };
 
-  # Optimize storage
-  # You can also manually optimize the store via:
-  #    nix-store --optimise
-  # Refer to the following link for more details:
-  # https://nixos.org/manual/nix/stable/command-ref/conf-file.html#conf-auto-optimise-store
+  # Оптимизация nix store
+  #   Можно запустить руками: nix-store --optimise
+  # или автоматически
   nix.settings.auto-optimise-store = true;
+  # Больше информации про оптимизацию пространства:
+  # https://nixos.org/manual/nix/stable/command-ref/conf-file.html#conf-auto-optimise-store
 }
 ```
-
-By incorporating this configuration, you can better manage and optimize the disk usage of your NixOS system.
