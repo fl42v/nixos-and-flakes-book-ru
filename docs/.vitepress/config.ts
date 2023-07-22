@@ -483,7 +483,7 @@ function themeConfigRussian() {
         {
           text: "Nixpkgs's Advanced Usage",
           items: [
-            { text: "Introduction", link: "/ru/nixpkgs/intro.md" },
+            { text: "Введение", link: "/ru/nixpkgs/intro.md" },
             { text: "callPackage", link: "/ru/nixpkgs/callpackage.md" },
             { text: "Оверрайды", link: "/ru/nixpkgs/overriding.md" },
             { text: "Оверлеи", link: "/ru/nixpkgs/overlays.md" },
@@ -535,10 +535,10 @@ function themeConfigRussian() {
           ],
         },
         {
-          text: "Dev Environments on NixOS",
+          text: "Разработка ПО в NixOS",
           items: [
             {
-              text: "nix develop & pkgs.mkShell",
+              text: "nix develop и pkgs.mkShell",
               link: "/ru/development/intro.md",
             },
             {

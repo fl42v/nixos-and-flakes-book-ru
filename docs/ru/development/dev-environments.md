@@ -1,11 +1,7 @@
 # Dev Environments
 
-We have learned how to build development environments, but it's a bit tedious to write `flake.nix` for each project.
+Описанные в предыдущей главе development environment-ы, безусловно, являются отличной фишкой, но писать `flake.nix` для каждого проекта долго и муторно. К счастью, проблема решена умными людьми из сообщества nix.
 
-Luckily, some people in the community have done this for us. The following repository contains development environment templates for most programming languages. Just copy and paste them:
+[Тут ](https://github.com/the-nix-way/dev-templates) можно найти шаблоны флейков для большинства ЯП (их можно копипасить).
 
-- [dev-templates](https://github.com/the-nix-way/dev-templates)
-
-If you think the structure of `flake.nix` is still too complicated and want a simpler way, you can also consider using the following project, which encapsulates Nix more thoroughly and provides users with a simpler definition:
-
-- [cachix/devenv](https://github.com/cachix/devenv)
+А если стуртура `flake.nix` кажется слишком муторной, и хочется чего-то попроще, можно воспользоваться [cachix/devenv](https://github.com/cachix/devenv).

@@ -1,26 +1,23 @@
 # Development Environments on NixOS
 
-NixOS's reproducibility makes it ideal for building development environments. However, if you're used to other distros, you may encounter problems because NixOS has its own logic. We'll briefly explain this below.
+Возможность NixOS гарантировать одинаковые результаты сборки делает ее идеальной для разработки ПО, однако стоит учитывать ряд отличий от более традиционных дистрибутивов.
 
-On NixOS, it's recommended to only install common tools in the global environment, such as `git`, `vim`, `emacs`, `tmux`, `zsh`, etc. The development environment of each language should be an independent environment for each project.
+На NixOS глобально/системно рекомендуется ставить тулзы "общего назначения", вроде `git`, `vim`, `emacs`, `tmux` или `zsh`, в то время как софт, нужный для разработки конктетных проектов на конкретных ЯП должен жить в соответствующих development environment-ах, изолированных от основной системы и друг от друга.
 
-You should NOT install the development environment of each language in the global environment. The project environment should be completely isolated from each other and will not affect each other.
+В следующих частях статьи будут описана работа с development environment-ами под NixOS.
 
-In the following sections, we'll introduce how the development environment works in NixOS.
+## Создаем Development Environment
 
-## Creating a Development Environment
+Development environment создается с помощью `pkgs.mkShell { ... }`, после чего можно открыть изолированный для проекта bash через `nix develop`.
 
-We can create a development environment using `pkgs.mkShell { ... }` and open an interactive Bash shell of this development environment using `nix develop`.
-
-To see how `pkgs.mkShell` works, let's take a look at [its source code](https://github.com/NixOS/nixpkgs/blob/master/pkgs/build-support/mkshell/default.nix).
+Посмотрим на [сырцы](https://github.com/NixOS/nixpkgs/blob/master/pkgs/build-support/mkshell/default.nix) `pkgs.mkShell`, чтобы разобраться в его работе:
 
 ```nix
 { lib, stdenv, buildEnv }:
 
-# A special kind of derivation that is only meant to be consumed by the
-# nix-shell.
+# особый derivation, работающий только с nix-shell.
 { name ? "nix-shell"
-, # a list of packages to add to the shell environment
+, # список пакетов, нужных для конкретного проекта
   packages ? [ ]
 , # propagate all the inputs from the given derivations
   inputsFrom ? [ ]
@@ -62,27 +59,27 @@ stdenv.mkDerivation ({
 
   # ......
 
-  # when distributed building is enabled, prefer to build locally
+  # если включена распределенная сборка (на нескольких машинах), предпочитаем билдить локально
   preferLocalBuild = true;
 } // rest)
 ```
 
-`pkgs.mkShell { ... }` is a special derivation (Nix package). Its `name`, `buildInputs`, and other parameters are customizable, and `shellHook` is a special parameter that will be executed when `nix develop` enters the environment.
+`pkgs.mkShell { ... }` - особый тип derivation. `name`, `buildInputs` и т.д. - изменяемые пользователем параметры, а в `shellHook` пишется то, что будет запущено при входе в окружение через `nix develop`.
 
-Here is a `flake.nix` that defines a development environment with Node.js 18 installed:
+Небольшой `flake.nix`, в котором описан development environment с Node.js 18:
 
 ```nix
 {
-  description = "A Nix-flake-based Node.js development environment";
+  description = "Development environment под Node.js на флейках";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05";
   };
 
   outputs = { self , nixpkgs ,... }: let
-    # system should match the system you are running on
-    # system = "x86_64-linux";
-    system = "x86_64-darwin";
+    # system должен соответствовать архитектуре исопльзуемой машины
+    # system = "x86_64-darwin";
+    system = "x86_64-linux";
   in {
     devShells."${system}".default = let
       pkgs = import nixpkgs {
@@ -96,7 +93,7 @@ Here is a `flake.nix` that defines a development environment with Node.js 18 ins
         ];
       };
     in pkgs.mkShell {
-      # create an environment with nodejs-18_x, pnpm, and yarn
+      # создаем environment c nodejs-18_x, pnpm и yarn
       packages = with pkgs; [
         node2nix
         nodejs
@@ -112,15 +109,12 @@ Here is a `flake.nix` that defines a development environment with Node.js 18 ins
 }
 ```
 
-Create an empty folder, save the above configuration as `flake.nix`, and then execute `nix develop` (or more precisely, you can use `nix develop .#default`), you will find that you have entered a nodejs 18 development environment, you can use `node` `npm` `pnpm` `yarn` and other commands. And when you just entered, `shellHook` was also executed, outputting the current version of nodejs.
+Кладем `flake.nix` в новую директорию, запускаем `nix develop` (так же сработает `nix develop .#default`, см 13 строку примера), оказываемся в development environment с nodejs 18 и пакетниками `npm`, `pnpm`, `yarn`. Также благодаря команде в `shellHook` выводится инфа о версии nodejs.
 
 
-## Using zsh/fish/... instead of bash
+## Используем zsh/fish/... вместо bash
 
-`pkgs.mkShell` uses `bash` by default, but you can also use `zsh` or `fish` by add `exec <your-shell>` into `shellHook`.
-
-Here is an example:
-
+По дефолту `pkgs.mkShell` открывает `bash`, однако это недоразумение можно исправить, закинув `exec <твой-шелл>` в `shellHook`:
 
 ```nix
 {
@@ -131,9 +125,9 @@ Here is an example:
   };
 
   outputs = { self , nixpkgs ,... }: let
-    # system should match the system you are running on
-    # system = "x86_64-linux";
-    system = "x86_64-darwin";
+    # system должен соответствовать архитектуре исопльзуемой машины
+    # system = "x86_64-darwin";
+    system = "x86_64-linux";
   in {
     devShells."${system}".default = let
       pkgs = import nixpkgs {
@@ -147,54 +141,56 @@ Here is an example:
         ];
       };
     in pkgs.mkShell {
-      # create an environment with nodejs-18_x, pnpm, and yarn
+      # создаем environment c nodejs-18_x, pnpm и yarn
       packages = with pkgs; [
         node2nix
         nodejs
         pnpm
         yarn
-        nushell
+        nushell # также хотим нюшелл
       ];
 
       shellHook = ''
         echo "node `${pkgs.nodejs}/bin/node --version`"
-        exec nu
+        exec nu # запускаем нюшелл
       '';
     };
   };
 }
 ```
 
-With the above configuration, `nix develop` will enter the REPL environment of nushell.
+Вуаля, при запуске `nix develop` попадаем в REPL nushell.
 
 
-## Enter the build environment of any Nix package
+## Заходим в сборочный environment любого Nix-пакета 
 
-Now let's take a look at `nix develop`, first read the help document output by `nix develop --help`:
+А теперь можно взглянуть на описание `nix develop`, `nix develop --help`:
 
 ```
 Name
-    nix develop - run a bash shell that provides the build environment of a derivation
+    nix develop - запускает bash с окрежением сборки derivation-а
 
 Synopsis
     nix develop [option...] installable
 # ......
 ```
 
-It tells us that `nix develop` accepts a parameter `installable`, which means that we can enter the development environment of any installable Nix package through it, not just the environment created by `pkgs.mkShell`.
+`installable` тут означает, что `nix develop` может зайти не только в результат `pkgs.mkShell`, но в окружение для сборки любого пакета, который можно установить.
 
-By default, `nix develop` will try to use the following attributes in the flake outputs:
+По дефолту `nix develop` ищет что-то из следующих атрибутов в `outputs` флейка (лежащего в текущей директории):
+
+> примечание: `system` = архитектура текущей системы, например `x86_64-linux`
 
 - `devShells.<system>.default`
 - `packages.<system>.default`
 
-If we use `nix develop /path/to/flake#<name>` to specify the flake package address and flake output name, then `nix develop` will try the following attributes in the flake outputs:
+Если указать путь к флейку и имя аутпута через `nix develop /path/to/flake#<имя>`, список станет таким:
 
-- `devShells.<system>.<name>`
-- `packages.<system>.<name>`
-- `legacyPackages.<system>.<name>`
+- `devShells.<system>.<имя>`
+- `packages.<system>.<имя>`
+- `legacyPackages.<system>.<имя>`
 
-Now let's try it out. First, test it to confirm that We don't have `c++` `g++` and other compilation-related commands in the current environment:
+Проверяем. Сейчас у нас нет доступа к `c++`/`g++`:
 
 ```shell
 ryan in 🌐 aquamarine in ~
@@ -206,7 +202,7 @@ ryan in 🌐 aquamarine in ~
 g++: command not found
 ```
 
-Then use `nix develop` to enter the build environment of the `hello` package in `nixpkgs`:
+Теперь с помощью `nix develop` сходим в сборочный цех проги `hello` из `nixpkgs`:
 
 ```shell
 # login to the build environment of the package `hello`
@@ -232,14 +228,14 @@ This is free software; see the source for copying conditions.  There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 ```
 
-We can see that the `CXX` environment variable have been set, and the `c++` `g++` and other commands can be used normally now.
+Видим установленную переменную окружения `CXX` и наличие `c++` и `g++`.
 
-In addition, we can also call every build phase of the `hello` package normally:
+Плюсом можно пройтись по разным стадиям сборки `hello`:
 
-> The default execution order of all build phases of a Nix package is: `$prePhases unpackPhase patchPhase $preConfigurePhases configurePhase $preBuildPhases buildPhase checkPhase $preInstallPhases installPhase fixupPhase installCheckPhase $preDistPhases distPhase $postPhases`
+> Пакеты в Nix проходят следующие старии сборки (в этом порядке): `$prePhases unpackPhase patchPhase $preConfigurePhases configurePhase $preBuildPhases buildPhase checkPhase $preInstallPhases installPhase fixupPhase installCheckPhase $preDistPhases distPhase $postPhases`
 
 ```shell
-# unpack source code
+# распаковываем исходники проги
 ryan in 🌐 aquamarine in /tmp/xxx via ❄️  impure (hello-2.12.1-env)
 › unpackPhase
 unpacking source archive /nix/store/pa10z4ngm0g83kx9mssrqzz30s84vq7k-hello-2.12.1.tar.gz
@@ -253,7 +249,7 @@ hello-2.12.1
 ryan in 🌐 aquamarine in /tmp/xxx via ❄️  impure (hello-2.12.1-env)
 › cd hello-2.12.1/
 
-# generate Makefile
+# генерируем Makefile
 ryan in 🌐 aquamarine in /tmp/xxx/hello-2.12.1 via ❄️  impure (hello-2.12.1-env)
 › configurePhase
 configure flags: --prefix=/tmp/xxx/outputs/out --prefix=/tmp/xxx/outputs/out
@@ -276,7 +272,7 @@ config.status: executing po-directories commands
 config.status: creating po/POTFILES
 config.status: creating po/Makefile
 
-# build the package
+# собираем
 ryan in 🌐 aquamarine in /tmp/xxx/hello-2.12.1 via C v12.3.0-gcc via ❄️  impure (hello-2.12.1-env) took 2s
 › buildPhase
 build flags: SHELL=/run/current-system/sw/bin/bash
@@ -288,24 +284,22 @@ gcc  -g -O2   -o hello src/hello.o  ./lib/libhello.a
 make[2]: Leaving directory '/tmp/xxx/hello-2.12.1'
 make[1]: Leaving directory '/tmp/xxx/hello-2.12.1'
 
-# run the built program
+# запускаем собранную программу
 ryan in 🌐 aquamarine in /tmp/xxx/hello-2.12.1 via C v12.3.0-gcc via ❄️  impure (hello-2.12.1-env)
 › ./hello
 Hello, world!
 ```
 
-This usage is mainly used to debug the build process of a Nix package, or to execute some commands in the build environment of a Nix package.
+Таким образом можно, например, дебажить сборку пакетов или вносить какие-нибудь изменения в процесс.
 
 ## `nix build`
 
-The `nix build` command is used to build a software package and creates a symbolic link named `result` in the current directory, which points to the build result.
-
-Here's an example:
+`nix build` собирает пакет и делает симлинк `result` из `/nix/store/куда-там-собрался-пакет` в текущую директорию:
 
 ```bash
-# Build the package 'ponysay' from the 'nixpkgs' flake
+# собираем 'ponysay' из 'nixpkgs'
 nix build "nixpkgs#ponysay"
-# Use the built 'ponysay' command
+# пользуем собранный 'ponysay'
 › ./result/bin/ponysay 'hey buddy!'
  ____________ 
 < hey buddy! >
@@ -333,11 +327,11 @@ nix build "nixpkgs#ponysay"
                                 ▀  ▀▀█  
 ```
 
-## Other Commands
+## Другие команды
 
-There are other commands like `nix flake init`, which you can explore in [New Nix Commands][New Nix Commands]. For more detailed information, please refer to the documentation.
+О других командах nix, вроде `nix flake init`, можно подробнее узнать из [New Nix Commands][New Nix Commands] или соответствующей документации.
 
-## References
+## Ссылки
 
 - [pkgs.mkShell - nixpkgs manual](https://nixos.org/manual/nixpkgs/stable/#sec-pkgs-mkShell)
 - [A minimal nix-shell](https://fzakaria.com/2021/08/02/a-minimal-nix-shell.html)
